@@ -87,24 +87,24 @@ class RegisterController extends Controller
     protected function registered(Request $request, $user)
     {
         // Send confirmation email
-        Mail::to($user->email)->send(new ConfirmYourEmail($user));
+        // Mail::to($user->email)->send(new ConfirmYourEmail($user));
 
         // Return success
         return response()->json([
-          'status' => 'success'
+            'status' => 'success'
         ]);
     }
 
-     public function confirm_email($token)
-     {
-          $user = User::where('confirm_token', $token)->first();
-          if($user){
-              $user->confirm();
-              Session::flash('success', 'تم تفعيل الإيميل الخاص بك بنجاح.');
-              return redirect('/');
-          }else{
-              Session::flash('error', 'فشل تفعيل البريد الخاص بك. يرجى التأكد من صحة الرابط الذي اتبعته وإعادة المحاولة.');
-              return redirect('/');
-          }
-     }
+    public function confirm_email($token)
+    {
+        $user = User::where('confirm_token', $token)->first();
+        if ($user) {
+            $user->confirm();
+            Session::flash('success', 'تم تفعيل الإيميل الخاص بك بنجاح.');
+            return redirect('/');
+        } else {
+            Session::flash('error', 'فشل تفعيل البريد الخاص بك. يرجى التأكد من صحة الرابط الذي اتبعته وإعادة المحاولة.');
+            return redirect('/');
+        }
+    }
 }

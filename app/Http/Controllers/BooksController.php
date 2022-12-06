@@ -45,7 +45,7 @@ class BooksController extends Controller
         $this->validate($request, [
             'title' => 'required|min:5|unique:books,book_name|max:255',
             'description' => 'required|min:10',
-            'thumbnail'   => 'required|image|mimes:jpg,jpeg,png|max:10240',
+            'thumbnail'   => 'required|mimes:jpg,jpeg,png|max:10240',
             'category' => 'nullable|integer|exists:categories,id',
             'tags' => 'nullable|array',
             'tags.*' => 'integer|exists:tags,id',
@@ -58,12 +58,17 @@ class BooksController extends Controller
         $book->book_name   = $request->input('title');
         $book->slug        = str_slug($request->input('title'));
         $book->description = $request->input('description');
-        $book->book_file   = $request->file('bookFile')->storeAs('books', md5(uniqid()) . \Carbon\Carbon::now()->toDateTimeString());
-        $book->thumbnail   = $request->file('thumbnail')->storeAs('thumbnails', md5(uniqid()) . \Carbon\Carbon::now()->toDateTimeString());
+
+        $request->file('bookFile')->storeAs('public/books', $name = uniqid() . '.' . $request->file('bookFile')->getClientOriginalExtension());
+        $book->book_file   = 'books/' . $name;
+
+        $request->file('thumbnail')->storeAs('public/thumbnails', $name = uniqid() . '.' . $request->file('thumbnail')->getClientOriginalExtension());
+        $book->thumbnail = 'thumbnails/' . $name;
+
         $book->category_id = $request->input('category');
         $book->author_id   = $request->input('author');
         $book->user_id     = Auth::user()->id;
-        if($book->save()){
+        if ($book->save()) {
             $book->tags()->sync($request->input('tags'), false);
             Session::flash('success', 'تم اضافة الكتاب بنجاح');
             return redirect()->route('books');
@@ -82,13 +87,13 @@ class BooksController extends Controller
         $book->views++;
         $book->save();
         $tags = [];
-        foreach($book->tags as $tag){
-          $tags[$tag->id] = $tag->title;
+        foreach ($book->tags as $tag) {
+            $tags[$tag->id] = $tag->title;
         }
         $relatedByAuthor   = \App\Book::orderBy('id', 'DESC')->where('author_id', $book->author_id)->where('id', '!=', $book->id)->paginate(4);
         $relatedByCategory = \App\Book::orderBy('id', 'DESC')->where('category_id', $book->category_id)->where('id', '!=', $book->id)->paginate(4);
 
-        return view('single', compact('book', 'tags', 'relatedByAuthor', 'relatedByCategory', 'comments'));
+        return view('single', compact('book', 'tags', 'relatedByAuthor', 'relatedByCategory'));
     }
 
     /**
@@ -118,42 +123,46 @@ class BooksController extends Controller
     {
         $book = Book::findOrFail($id);
         // Validation
-        if($request->input('title') === $book->book_name){
+        if ($request->input('title') === $book->book_name) {
             $this->validate($request, [
-              'description' => 'required|min:10',
-              'thumbnail'   => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
-              'category' => 'nullable|integer|exists:categories,id',
-              'tags' => 'nullable|array',
-              'tags.*' => 'integer|exists:tags,id',
-              'author' => 'nullable|integer|exists:authors,id',
-              'bookFile' => 'nullable|mimes:pdf|max:30720'
+                'description' => 'required|min:10',
+                'thumbnail'   => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
+                'category' => 'nullable|integer|exists:categories,id',
+                'tags' => 'nullable|array',
+                'tags.*' => 'integer|exists:tags,id',
+                'author' => 'nullable|integer|exists:authors,id',
+                'bookFile' => 'nullable|mimes:pdf|max:30720'
             ]);
-        }else{
+        } else {
             $this->validate($request, [
-              'title' => 'required|min:5|unique:books,book_name|max:255',
-              'description' => 'required|min:10',
-              'thumbnail'   => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
-              'category' => 'nullable|integer|exists:categories,id',
-              'tags' => 'nullable|array',
-              'tags.*' => 'integer|exists:tags,id',
-              'author' => 'nullable|integer|exists:authors,id',
-              'bookFile' => 'nullable|mimes:pdf|max:30720'
+                'title' => 'required|min:5|unique:books,book_name|max:255',
+                'description' => 'required|min:10',
+                'thumbnail'   => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
+                'category' => 'nullable|integer|exists:categories,id',
+                'tags' => 'nullable|array',
+                'tags.*' => 'integer|exists:tags,id',
+                'author' => 'nullable|integer|exists:authors,id',
+                'bookFile' => 'nullable|mimes:pdf|max:30720'
             ]);
         }
         // Updating
         $book->book_name   = $request->input('title');
         $book->slug        = str_slug($request->input('title'));
         $book->description = $request->input('description');
-        if($request->hasFile('bookFile')){
-          $book->book_file   = $request->file('bookFile')->storeAs('books', md5(uniqid()) . \Carbon\Carbon::now()->toDateTimeString());
+        if ($request->hasFile('bookFile')) {
+            $request->file('bookFile')->storeAs('public/books', $name = uniqid() . '.' . $request->file('bookFile')->getClientOriginalExtension());
+            $book->book_file   = 'books/' . $name;
         }
-        if($request->hasFile('thumbnail')){
-          $book->thumbnail   = $request->file('thumbnail')->storeAs('thumbnails', md5(uniqid()) . \Carbon\Carbon::now()->toDateTimeString());
+
+        if ($request->hasFile('thumbnail')) {
+            $request->file('thumbnail')->storeAs('public/thumbnails', $name = uniqid() . '.' . $request->file('thumbnail')->getClientOriginalExtension());
+            $book->thumbnail = 'thumbnails/' . $name;
         }
+
         $book->category_id = $request->input('category');
         $book->author_id   = $request->input('author');
 
-        if($book->save()){
+        if ($book->save()) {
             $book->tags()->sync($request->input('tags'), true);
             Session::flash('success', 'البوست اتعدل بنجاح يسطا');
             return redirect()->route('books', $id);
